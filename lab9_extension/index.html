@@ -1,0 +1,627 @@
+<!doctype html>
+<html lang="en">
+ <head>
+  <!-- Character encoding supports ordinary text and symbols. -->
+  <meta charset="utf-8"/>
+  <!-- Size the page to the phone screen; disable pinch zoom because
+     the primary gesture is dragging the joystick. -->
+  <meta content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no" name="viewport"/>
+  <meta content="#101b2b" name="theme-color"/>
+  <title>
+   HM-10 Joystick Remote
+  </title>
+  <!-- CSS defines appearance only. It does not send Bluetooth data. -->
+  <style>
+   /* Page-wide typography, dark background, and sizing rules. */
+:root {
+    font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    color:#f3f7fc;
+    background:#101b2b;
+    color-scheme:dark
+}
+
+
+*{box-sizing:border-box
+}
+
+body {
+    margin:0;
+    min-height:100dvh;
+    padding:20px 16px 34px;
+    display:flex;
+    justify-content:center
+}
+
+main {
+    width:min(100%,520px)
+}
+
+h1 {
+    font-size:1.55rem;
+    margin:0 0 5px
+}
+
+.sub {
+    color:#aebcd0;
+    margin:0 0 20px;
+    font-size:.9rem
+}
+
+.panel {
+    background:#1a2a40;
+    border:1px solid #33455e;
+    border-radius:18px;
+    padding:18px;
+    margin:13px 0
+}
+
+button {
+    font:inherit;
+    cursor:pointer;
+    border:0;
+    border-radius:12px;
+    padding:12px 18px;
+    background:#4e8ef7;
+    color:white;
+    font-weight:650;
+    min-height:44px
+}
+
+button:disabled {
+    opacity:.42;
+    cursor:default
+}
+
+.controls {
+    display:flex;
+    gap:10px;
+    flex-wrap:wrap
+}
+
+.secondary {
+    background:#334a67
+}
+
+.status {
+    display:flex;
+    align-items:center;
+    gap:8px;
+    font-weight:600;
+    margin:13px 0 0
+}
+
+.dot {
+    width:10px;
+    height:10px;
+    border-radius:50%;
+    background:#e9aa4a
+}
+
+.dot.online {
+    background:#59d998
+}
+
+.small {
+    font-size:.83rem;
+    color:#b7c6d8;
+    line-height:1.5
+}
+
+.joystick-area {
+    display:flex;
+    justify-content:center;
+    padding:15px 0 8px
+}
+
+/* The round joystick surface. touch-action:none is important:
+   it prevents a drag gesture from scrolling the page instead. */
+.joystick {
+    position:relative;
+    width:min(74vw,310px);
+    height:min(74vw,310px);
+    border-radius:50%;
+    border:3px solid #5c7493;
+    background:radial-gradient(circle,#2d4564 0%,#17283f 75%);
+    touch-action:none;
+    user-select:none;
+    -webkit-user-select:none;
+    overflow:hidden
+}
+
+/* Crosshair guides and the inner dashed circle are decorative. */
+.joystick:before,.joystick:after {
+    content:"";
+    position:absolute;
+    background:#5d7594;
+    opacity:.5;
+    pointer-events:none
+}
+
+.joystick:before {
+    width:1px;
+    height:100%;
+    left:50%
+}
+
+.joystick:after {
+    height:1px;
+    width:100%;
+    top:50%
+}
+
+.ring {
+    position:absolute;
+    inset:20%;
+    border:1px dashed #6482a8;
+    border-radius:50%;
+    pointer-events:none
+}
+
+/* The blue knob is positioned by JavaScript through style.left/top.
+   pointer-events:none means the joystick receives the touch, not the knob. */
+.knob {
+    position:absolute;
+    left:50%;
+    top:50%;
+    width:27%;
+    height:27%;
+    transform:translate(-50%,-50%);
+    background:linear-gradient(145deg,#70adff,#2f70d7);
+    border:4px solid #b4d4ff;
+    border-radius:50%;
+    box-shadow:0 5px 20px #0007;
+    pointer-events:none
+}
+
+.axis-label {
+    position:absolute;
+    font-size:.7rem;
+    color:#b7c9e0;
+    pointer-events:none
+}
+
+.up {
+    top:7px;
+    left:50%;
+    transform:translateX(-50%)
+}
+
+.down {
+    bottom:7px;
+    left:50%;
+    transform:translateX(-50%)
+}
+
+.left {
+    left:9px;
+    top:50%;
+    transform:translateY(-50%)
+}
+
+.right {
+    right:9px;
+    top:50%;
+    transform:translateY(-50%)
+}
+
+.readouts {
+    display:grid;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:12px
+}
+
+.readout {
+    background:#122136;
+    border-radius:12px;
+    padding:12px
+}
+
+.readout .label {
+    font-size:.78rem;
+    color:#b7c6d8
+}
+
+.readout strong {
+    display:block;
+    margin-top:5px;
+    font-size:1.18rem;
+    font-variant-numeric:tabular-nums
+}
+
+code {
+    font-family:ui-monospace,SFMono-Regular,Consolas,monospace
+}
+
+.full {
+    grid-column:1/-1
+}
+
+.note {
+    font-size:.8rem;
+    color:#b7c6d8;
+    line-height:1.55
+}
+
+#log {
+    max-height:130px;
+    overflow:auto;
+    white-space:pre-wrap;
+    overflow-wrap:anywhere;
+    font-size:.76rem;
+    color:#c6d5e8;
+    margin:10px 0 0
+}
+
+input[type=range] {
+    width:100%;
+    accent-color:#75adff
+}
+
+label {
+    display:block
+}
+
+.settings {
+    display:flex;
+    gap:12px;
+    align-items:center;
+    justify-content:space-between
+}
+
+a {
+    color:#9bc5ff
+}
+  </style>
+ </head>
+ 
+ 
+ <body>
+ 
+  <!-- The visible user interface begins here. Each id="..." provides
+     a named element that JavaScript can retrieve and update. -->
+  <main>
+   <h1>
+    HM-10 Joystick Remote
+   </h1>
+   <p class="sub">
+    One-byte BLE control • Arduino Pro Mini + HM-10
+   </p>
+   <!-- Connection panel: user interaction is required to open the BLE picker. -->
+   <section class="panel">
+    <div class="controls">
+     <button id="connect">
+      Connect HM-10
+     </button>
+     <button class="secondary" disabled="" id="disconnect">
+      Disconnect
+     </button>
+    </div>
+    <div class="status">
+     <span class="dot" id="dot">
+     </span>
+     <span id="status">
+      Not connected
+     </span>
+    </div>
+    <p class="small">
+     Use a Web Bluetooth-capable iPhone browser (for example, Bluefy). Bluetooth selection must be initiated by tapping Connect.
+    </p>
+   </section>
+   <section class="panel">
+    <!-- Joystick panel: pointer events are attached to id="joystick";
+     the child id="knob" is repositioned when the finger moves. -->
+    <div class="joystick-area">
+     <div aria-label="Touch joystick: move and release to stop" class="joystick" id="joystick" role="application">
+      <div class="ring">
+      </div>
+      <span class="axis-label up">
+       FORWARD
+      </span>
+      <span class="axis-label down">
+       BACK
+      </span>
+      <span class="axis-label left">
+       LEFT
+      </span>
+      <span class="axis-label right">
+       RIGHT
+      </span>
+      <div class="knob" id="knob">
+      </div>
+     </div>
+    </div>
+    <div class="controls" style="justify-content:center;margin:12px 0">
+     <button id="headlights" aria-pressed="false">Headlights: OFF</button>
+     <button id="horn" aria-pressed="false">Horn: OFF</button>
+    </div>
+    <p class="note">Tap to toggle. Horn makes the Arduino LED blink at 10 Hz; headlights keep it on when the horn is off.</p>
+    <!-- These readouts are refreshed by updateDisplay(). -->
+    <div class="readouts">
+     <div class="readout">
+      <span class="label">
+       Pan (positive = left)
+      </span>
+      <strong id="pan">
+       0.00
+      </strong>
+     </div>
+     <div class="readout">
+      <span class="label">
+       Tilt (negative = forward)
+      </span>
+      <strong id="tilt">
+       0.00
+      </strong>
+     </div>
+     <div class="readout full">
+      <span class="label">
+       Command byte
+      </span>
+      <strong>
+       <code id="binary">
+        0b00000000
+       </code>
+       <code id="hex">
+        0x00
+       </code>
+      </strong>
+      <span class="small" id="direction">
+       STOP
+      </span>
+     </div>
+    </div>
+    <p class="note">
+     Release the joystick to stop movement while preserving the headlights and horn switches. STOP now clears all commands. Commands repeat every 100 ms while connected.
+    </p>
+   </section>
+   <!-- Settings and diagnostic panel: dead zone, STOP, test, log. -->
+   <section class="panel">
+    <div class="settings">
+     <label for="deadzone">
+      Center dead zone
+     </label>
+     <strong id="deadzoneValue">
+      20%
+     </strong>
+    </div>
+    <input id="deadzone" max="40" min="5" step="5" type="range" value="20"/>
+    <p class="note">
+     Small movements inside the dead zone are treated as centered. Diagonal commands combine two bits.
+    </p>
+    <div class="controls">
+     <button class="secondary" id="test">
+      Test encoding (no BLE)
+     </button>
+     <button class="secondary" id="stop">
+      STOP now
+     </button>
+    </div>
+    <pre aria-live="polite" id="log"></pre>
+   </section>
+   <p class="note">
+    Safety: The receiver must independently stop motors if no valid command arrives within approximately 300–500 ms. Browser disconnects and phone sleep can prevent STOP from reaching the receiver.
+   </p>
+  </main>
+  
+  
+  <!-- JavaScript implements all behavior. It runs inside the browser,
+     not on the Arduino or the HM-10. -->
+  <script>
+   /* ================================================================
+   PART 1 — SETTINGS AND APPLICATION STATE
+   ================================================================ */
+'use strict'; // Enable stricter JavaScript error checking.
+// BLE uses services and characteristics, not a traditional serial port.
+// FFE0 is the commonly used HM-10 service; FFE1 is the data characteristic.
+// The full 128-bit UUIDs below are equivalent to the short 16-bit identifiers.
+// Some HM-10-compatible modules use different identifiers: check if needed.
+const SERVICE_UUID = '0000ffe0-0000-1000-8000-00805f9b34fb';
+const CHAR_UUID = '0000ffe1-0000-1000-8000-00805f9b34fb';
+// Repeat the current command every 100 ms (nominally 10 times per second).
+// Browser timers are not real-time; the Arduino should have a failsafe timeout.
+const SEND_INTERVAL_MS = 100;
+// Convenience helper: $('pan') is shorthand for document.getElementById('pan').
+const $ = id => document.getElementById(id);
+const joystick = $('joystick');
+// BLE state: selected remote device, writable characteristic, periodic timer.
+let device = null, characteristic = null, timer = null;
+// Joystick state. pan/tilt range from -1 to +1.
+// IMPORTANT SIGN CONVENTION:
+//   pan > 0 means LEFT; pan < 0 means RIGHT.
+//   tilt < 0 means FORWARD; tilt > 0 means BACKWARD.
+// activePointer tracks the finger that owns the drag (prevents a second
+// simultaneous finger from unexpectedly changing the command).
+let pan = 0, tilt = 0, commandByte = 0, activePointer = null;
+let headlightsOn = false, hornOn = false;
+// Prevent overlapping asynchronous Bluetooth writes.
+let writeBusy = false;
+// Slider stores a percentage (20), while encode() needs a fraction (0.20).
+let deadZone = Number($('deadzone').value) / 100;
+/* Display diagnostic messages in the on-page log. New messages go first.
+   Limit retained text so the log does not grow indefinitely. */
+function log(message) {
+  const time = new Date().toLocaleTimeString();
+  $('log').textContent = `[${time}] ${message}\n` + $('log').textContent.slice(0, 1800);
+}
+/* Update the connection label, status dot, and enabled buttons. */
+function setStatus(message, online) {
+  $('status').textContent = message;
+  $('dot').classList.toggle('online', online);
+  $('connect').disabled = online;
+  $('disconnect').disabled = !online;
+}
+/* ================================================================
+   PART 2 — JOYSTICK POSITION -> ONE-BYTE COMMAND
+   ================================================================
+   Each direction occupies one bit:
+     bit 0 (0x01) LEFT        bit 1 (0x02) RIGHT
+     bit 2 (0x04) FORWARD     bit 3 (0x08) BACKWARD
+   Bits 4..7 remain zero. Diagonals combine two bits using bitwise OR.
+   The dead zone suppresses small accidental movements around the center.
+   Example: forward+left => 0x04 | 0x01 = 0x05.
+*/
+function encode(p, t) {
+  let b = 0;
+  if (t < -deadZone) b |= 0b00000100; // forward
+  if (t >  deadZone) b |= 0b00001000; // backward
+  if (p >  deadZone) b |= 0b00000001; // left
+  if (p < -deadZone) b |= 0b00000010; // right
+  return b;
+}
+/* Recalculate the command and redraw all on-screen values.
+   toFixed(2) formats axis values; padStart(8,'0') shows all eight bits.
+   The knob position is a CSS percentage: at center it is 50%/50%.
+   pan is negated in the horizontal position because positive pan means LEFT.
+*/
+function updateDisplay() {
+  commandByte = encode(pan, tilt) | (headlightsOn ? 0x10 : 0) | (hornOn ? 0x20 : 0);
+  $('pan').textContent = pan.toFixed(2);
+  $('tilt').textContent = tilt.toFixed(2);
+  $('binary').textContent = '0b' + commandByte.toString(2).padStart(8, '0');
+  $('hex').textContent = '0x' + commandByte.toString(16).padStart(2, '0').toUpperCase();
+  const parts = [];
+  if (commandByte & 4) parts.push('FORWARD');
+  if (commandByte & 8) parts.push('BACK');
+  if (commandByte & 1) parts.push('LEFT');
+  if (commandByte & 2) parts.push('RIGHT');
+  $('direction').textContent = (parts.join(' + ') || 'STOP') + (headlightsOn ? ' | HEADLIGHTS' : '') + (hornOn ? ' | HORN' : '');
+  for (const [id, on, label] of [['headlights', headlightsOn, 'Headlights'], ['horn', hornOn, 'Horn']]) {
+    $(id).textContent = label + ': ' + (on ? 'ON' : 'OFF');
+    $(id).setAttribute('aria-pressed', String(on));
+    $(id).style.background = on ? '#26764c' : '#334a67';
+  }
+  $('knob').style.left = `${50 - pan * 35}%`;
+  $('knob').style.top = `${50 + tilt * 35}%`;
+}
+/* Convert a finger/mouse position to normalized joystick coordinates.
+   getBoundingClientRect() supplies the joystick's screen rectangle.
+   clientX/clientY are pointer coordinates relative to the viewport.
+   Subtract the circle center, then divide by 35% of its size so the
+   knob's intended travel range maps approximately to [-1, +1].
+   Math.hypot(x,y) computes distance from center; scale >= 1 clamps
+   diagonal movement to the unit circle rather than letting it exceed 1.
+*/
+function positionFromPointer(event) {
+  const r = joystick.getBoundingClientRect();
+  const x = (event.clientX - (r.left + r.width / 2)) / (r.width * 0.35);
+  const y = (event.clientY - (r.top + r.height / 2)) / (r.height * 0.35);
+  const scale = Math.max(1, Math.hypot(x, y));
+  // Coordinate convention required by the assignment:
+  // screen LEFT -> pan positive; screen UP -> tilt negative.
+  pan = -x / scale;
+  tilt = y / scale;
+  updateDisplay();
+}
+/* Release/STOP: reset axes, redraw, and attempt an immediate 0x00.
+   The periodic timer also continues sending 0x00 while connected.
+   The receiver must still stop on communication loss because an immediate
+   STOP cannot be guaranteed to reach it (e.g., radio disconnection).
+*/
+function center() { pan = 0; tilt = 0; activePointer = null; updateDisplay(); sendCommand(commandByte); }
+/* ================================================================
+   PART 3 — TOUCH / POINTER EVENTS
+   ================================================================
+   pointerdown: finger touches joystick, claim that pointer.
+   pointermove: update position while the claimed finger moves.
+   pointerup: release -> center.
+   pointercancel/lostpointercapture: also center on interruption.
+   Pointer events support touch and mouse with the same code.
+*/
+joystick.addEventListener('pointerdown', e => { if (activePointer !== null) return; activePointer = e.pointerId; joystick.setPointerCapture(e.pointerId); positionFromPointer(e); });
+joystick.addEventListener('pointermove', e => { if (activePointer === e.pointerId) positionFromPointer(e); });
+joystick.addEventListener('pointerup', e => { if (activePointer === e.pointerId) center(); });
+joystick.addEventListener('pointercancel', e => { if (activePointer === e.pointerId) center(); });
+joystick.addEventListener('lostpointercapture', () => { if (activePointer !== null) center(); });
+// Read slider changes immediately and recompute the encoded command.
+$('deadzone').addEventListener('input', e => { deadZone = Number(e.target.value) / 100; $('deadzoneValue').textContent = `${Math.round(deadZone * 100)}%`; updateDisplay(); });
+function allOff() { headlightsOn = false; hornOn = false; center(); }
+$('stop').addEventListener('click', allOff);
+$('headlights').addEventListener('click', () => { headlightsOn = !headlightsOn; updateDisplay(); sendCommand(commandByte); });
+$('horn').addEventListener('click', () => { hornOn = !hornOn; updateDisplay(); sendCommand(commandByte); });
+// Self-test computes known directional codes without needing Bluetooth.
+$('test').addEventListener('click', () => { log(`Encoding check: F=0x${encode(0,-1).toString(16)}, B=0x${encode(0,1).toString(16)}, L=0x${encode(1,0).toString(16)}, R=0x${encode(-1,0).toString(16)}, F+L=0x${encode(1,-1).toString(16)}`); });
+/* ================================================================
+   PART 4 — BLUETOOTH CONNECTION LIFECYCLE
+   ================================================================ */
+// Stop the periodic command-sending timer, if one is running.
+function stopTimer() { if (timer !== null) { clearInterval(timer); timer = null; } }
+// Called when the BLE link disconnects; clear state and show offline.
+function disconnected() { stopTimer(); characteristic = null; writeBusy = false; allOff(); setStatus('Disconnected', false); log('BLE disconnected. Receiver must fail safe to STOP.'); }
+/* Connect must be initiated by a user tap (browser security rule).
+   1. Ask user to select a BLE device (requestDevice).
+   2. Open its GATT server connection.
+   3. Find the HM-10 FFE0 service and FFE1 characteristic.
+   4. Verify the characteristic supports writes.
+   5. Start repeating the command at SEND_INTERVAL_MS.
+   'await' pauses this async function until each BLE step completes.
+*/
+async function connect() {
+  if (!navigator.bluetooth) { log('Web Bluetooth unavailable. Open this HTTPS page in Bluefy or another compatible browser.'); return; }
+  $('connect').disabled = true;
+  try {
+    // acceptAllDevices permits HM-10 clones with nonstandard advertised names.
+    device = await navigator.bluetooth.requestDevice({acceptAllDevices:true, optionalServices:[SERVICE_UUID]});
+    device.addEventListener('gattserverdisconnected', disconnected);
+    log(`Selected: ${device.name || '(unnamed BLE device)'}`);
+    const server = await device.gatt.connect();
+    const service = await server.getPrimaryService(SERVICE_UUID);
+    characteristic = await service.getCharacteristic(CHAR_UUID);
+    if (!characteristic.properties.write && !characteristic.properties.writeWithoutResponse) throw new Error('FFE1 is not writable on this device');
+    setStatus(`Connected: ${device.name || 'HM-10'}`, true);
+    log('Connected; sending 1-byte commands every 100 ms.');
+    timer = setInterval(() => { if (!document.hidden) sendCommand(commandByte); }, SEND_INTERVAL_MS);
+    allOff();
+  } catch (err) {
+    log(`Connection failed: ${err.message || err}`);
+    if (device && device.gatt && device.gatt.connected) device.gatt.disconnect();
+    characteristic = null;
+    setStatus('Not connected', false);
+  }
+}
+/* ================================================================
+   PART 5 — TRANSMIT ONE RAW BYTE
+   ================================================================
+   This is NOT ASCII text: e.g., forward sends the single byte 0x04,
+   not the printable character '4' (ASCII 0x34).
+   Uint8Array([value & 0xFF]) makes a one-element byte array.
+   The HM-10 forwards that byte to the Arduino over its UART interface.
+   writeBusy prevents overlapping writes if the previous write is slow.
+   Different browsers/modules support different GATT write methods;
+   choose write-without-response when available, otherwise with-response.
+*/
+async function sendCommand(value) {
+  if (!characteristic || writeBusy) return;
+  writeBusy = true;
+  try {
+    const data = new Uint8Array([value & 0xFF]);
+    if (characteristic.properties.writeWithoutResponse && characteristic.writeValueWithoutResponse) {
+      await characteristic.writeValueWithoutResponse(data);
+    } else if (characteristic.properties.write && characteristic.writeValueWithResponse) {
+      await characteristic.writeValueWithResponse(data);
+    } else if (characteristic.writeValue) {
+      await characteristic.writeValue(data); // fallback for older Web Bluetooth implementations
+    } else {
+      throw new Error('No supported BLE write method');
+    }
+  } catch (err) { log(`BLE write error: ${err.message || err}`); stopTimer(); setStatus('Write error — reconnect', false); }
+  finally { writeBusy = false; }
+}
+/* ================================================================
+   PART 6 — BUTTONS, PAGE LIFECYCLE, AND INITIALIZATION
+   ================================================================ */
+$('connect').addEventListener('click', connect);
+$('disconnect').addEventListener('click', () => { allOff(); if (device?.gatt?.connected) device.gatt.disconnect(); else disconnected(); });
+// If the user switches apps or the page is hidden, request STOP.
+// This is best effort; the Arduino still needs its own watchdog timeout.
+document.addEventListener('visibilitychange', () => { if (document.hidden) allOff(); });
+window.addEventListener('pagehide', allOff);
+// Initial render and log entry when the page first loads.
+updateDisplay();
+log('Ready. Open over HTTPS and tap Connect HM-10.');
+  </script>
+  
+ </body>
+ 
+ 
+</html>
+
